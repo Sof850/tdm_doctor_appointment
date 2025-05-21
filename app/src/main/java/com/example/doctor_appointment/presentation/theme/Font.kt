@@ -1,4 +1,4 @@
-package com.example.doctor_appointment.ui.theme
+package com.example.doctor_appointment.presentation.theme
 
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily

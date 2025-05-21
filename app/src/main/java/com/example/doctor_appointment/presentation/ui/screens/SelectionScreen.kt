@@ -1,4 +1,4 @@
-package com.example.doctor_appointment
+package com.example.doctor_appointment.presentation.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,7 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.doctor_appointment.ui.theme.Poppins
+import com.example.doctor_appointment.R
+import com.example.doctor_appointment.presentation.theme.Poppins
 
 @Composable
 fun UserTypeSelectionScreen(navController: NavHostController) {

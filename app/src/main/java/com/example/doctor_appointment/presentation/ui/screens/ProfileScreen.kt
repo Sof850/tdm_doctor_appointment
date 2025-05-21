@@ -1,4 +1,4 @@
-package com.example.doctor_appointment
+package com.example.doctor_appointment.presentation.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import com.example.doctor_appointment.ui.theme.Poppins
+import com.example.doctor_appointment.presentation.theme.Poppins
 
 
 @Composable

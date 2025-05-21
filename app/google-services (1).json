@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "633919295076",
+    "project_id": "doctorapp-9a1a8",
+    "storage_bucket": "doctorapp-9a1a8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:633919295076:android:f95ee516ec090cdc245971",
+        "android_client_info": {
+          "package_name": "com.example.newnavigationmedecin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhMRU_3jeejWd0lsNNNuEXsAk9XOZ_Ixs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

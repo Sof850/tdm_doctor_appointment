@@ -1,4 +1,4 @@
-package com.example.doctor_appointment.ui.theme
+package com.example.doctor_appointment.presentation.theme
 
 import android.app.Activity
 import android.os.Build

@@ -1,5 +1,6 @@
-package com.example.doctor_appointment
+package com.example.doctor_appointment.presentation.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -44,11 +45,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.doctor_appointment.ui.theme.Poppins
+import com.example.doctor_appointment.presentation.viewmodel.AuthViewModel
+import com.example.doctor_appointment.presentation.theme.Poppins
+import com.example.doctor_appointment.R
+import com.example.doctor_appointment.presentation.ui.components.CustomTextFieldWithTitle
 
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(navController: NavController, viewModel: AuthViewModel, onGoogleSignInClicked: () -> Unit) {
     var user by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -198,7 +202,18 @@ fun LoginScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { /* Handle login click */ },
+                onClick = {
+                    if (user.isNotEmpty() && password.isNotEmpty()) {
+                        Log.d("Login", "Attempting login for $user")
+                        viewModel.login(user, password) { success, token, role ->
+                            if (success) {
+                                Log.d("Login", "Success! Token = $token\nYour role is $role")
+                            } else {
+                                Log.e("Login", "Failed")
+                            }
+                        }
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B8FAC)),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,7 +232,7 @@ fun LoginScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
-                onClick = { /* Handle Google login */ },
+                onClick = onGoogleSignInClicked,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -272,7 +287,7 @@ fun LoginScreen(navController: NavController) {
 
 
 @Composable
-fun SignUpScreen(navController: NavController) {
+fun SignUpScreen(navController: NavController, viewModel: AuthViewModel) {
     var firstName by remember { mutableStateOf("") }
     var familyName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -363,7 +378,19 @@ fun SignUpScreen(navController: NavController) {
 
             // Sign Up Button
             Button(
-                onClick = { /* Handle login click */ },
+                onClick = {
+                    if (firstName.isNotEmpty() && familyName.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
+                        if (password == confirmPassword) {
+                            viewModel.signup(firstName, familyName, email, password) { success ->
+                                if (success) {
+                                    Log.d("Login", "Success!")
+                                } else {
+                                    Log.e("Login", "Failed")
+                                }
+                            }
+                        }
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B8FAC)), // Blue background
                 modifier = Modifier
                     .fillMaxWidth()
@@ -443,66 +470,4 @@ fun SignUpScreen(navController: NavController) {
 
 
 
-@Composable
-fun CustomTextFieldWithTitle(
-    value: String,
-    onValueChange: (String) -> Unit,
-    title: String,
-    placeholderText: String,
-    modifier: Modifier = Modifier,
-    isPassword: Boolean = false
-) {
-    var passwordVisible by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier) {
-        // Title
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = Poppins,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // TextField
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle = LocalTextStyle.current.copy(  // 👈 this sets the font
-                fontFamily = Poppins,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color.Black
-            ),
-            placeholder = {
-                Text(
-                    text = placeholderText,
-                    fontSize = 16.sp,
-                    color = Color(0xFF858585),
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = Poppins
-                )
-            },
-            shape = RoundedCornerShape(8.dp),
-            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-            trailingIcon = {
-                if (isPassword) {
-                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password", tint = Color(0xFF0B8FAC))
-                    }
-                }
-            },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFD9D9D9),
-                unfocusedContainerColor = Color(0xFFD9D9D9),
-                cursorColor = Color(0xFF0B8FAC),
-                focusedIndicatorColor = Color(0xFFE6E6E6),
-                unfocusedIndicatorColor = Color(0xFFE6E6E6)
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
