@@ -1,6 +1,7 @@
 package com.example.doctor_appointment.presentation.ui.screens
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,11 +54,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.doctor_appointment.data.model.DoctorProfile
+import com.example.doctor_appointment.data.model.PatientProfile
 import com.example.doctor_appointment.data.model.SocialLinks
-import com.example.doctor_appointment.data.model.WorkingHour
 import com.example.doctor_appointment.data.model.WorkingHours
 import com.example.doctor_appointment.presentation.theme.Poppins
 import com.example.doctor_appointment.presentation.ui.components.EditableProfileField
+import com.example.doctor_appointment.presentation.viewmodel.AuthViewModel
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -182,22 +189,43 @@ fun TimeSelectionField(
     }
 }
 
+// Helper function to create working hours JsonArray for saving
+fun createWorkingHoursJson(morningStart: String, morningEnd: String, afternoonStart: String, afternoonEnd: String): List<Map<String, Any>> {
+    return listOf(
+        mapOf(
+            "start_time" to morningStart,
+            "end_time" to morningEnd,
+            "period" to false // morning shift
+        ),
+        mapOf(
+            "start_time" to afternoonStart,
+            "end_time" to afternoonEnd,
+            "period" to true // evening/afternoon shift
+        )
+    )
+}
+
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    isPatient: Boolean = false
+    authViewModel: AuthViewModel,
+    onLogout: () -> Unit
 ) {
     var isEditing by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
+    var profileData by remember { mutableStateOf<Any?>(null) }
+    var isPatient by remember { mutableStateOf(true) }
+    var isSaving by remember { mutableStateOf(false) }
 
     // Common fields
-    val firstName = remember { mutableStateOf("Jean") }
-    val lastName = remember { mutableStateOf("Dupont") }
-    val address = remember { mutableStateOf("123 Rue de Paris, France") }
-    val phone = remember { mutableStateOf("+33 6 12 34 56 78") }
+    val firstName = remember { mutableStateOf("") }
+    val lastName = remember { mutableStateOf("") }
+    val address = remember { mutableStateOf("") }
+    val phone = remember { mutableStateOf("") }
 
     // Doctor-specific fields
-    val contactEmail = remember { mutableStateOf("jean.dupont@medecin.com") }
-    val contactPhone = remember { mutableStateOf("+33 1 23 45 67 89") }
+    val contactEmail = remember { mutableStateOf("") }
+    val contactPhone = remember { mutableStateOf("") }
 
     // Social media fields
     val facebook = remember { mutableStateOf("") }
@@ -205,23 +233,97 @@ fun ProfileScreen(
     val twitter = remember { mutableStateOf("") }
     val linkedin = remember { mutableStateOf("") }
 
-    // Working hours
-    val morning = remember { mutableStateOf(WorkingHour) }
-    val evening = remember { mutableStateOf(WorkingHour) }
-    val workingHours = remember { mutableStateOf(WorkingHours()) }
+    // Working hours - individual time fields
+    val morningStart = remember { mutableStateOf("") }
+    val morningEnd = remember { mutableStateOf("") }
+    val afternoonStart = remember { mutableStateOf("") }
+    val afternoonEnd = remember { mutableStateOf("") }
 
     // Original values for cancel functionality
-    val originalFirstName = remember { mutableStateOf(firstName.value) }
-    val originalLastName = remember { mutableStateOf(lastName.value) }
-    val originalAddress = remember { mutableStateOf(address.value) }
-    val originalPhone = remember { mutableStateOf(phone.value) }
-    val originalContactEmail = remember { mutableStateOf(contactEmail.value) }
-    val originalContactPhone = remember { mutableStateOf(contactPhone.value) }
-    val originalFacebook = remember { mutableStateOf(facebook.value) }
-    val originalInstagram = remember { mutableStateOf(instagram.value) }
-    val originalTwitter = remember { mutableStateOf(twitter.value) }
-    val originalLinkedin = remember { mutableStateOf(linkedin.value) }
-    val originalWorkingHours = remember { mutableStateOf(workingHours.value) }
+    val originalFirstName = remember { mutableStateOf("") }
+    val originalLastName = remember { mutableStateOf("") }
+    val originalAddress = remember { mutableStateOf("") }
+    val originalPhone = remember { mutableStateOf("") }
+    val originalContactEmail = remember { mutableStateOf("") }
+    val originalContactPhone = remember { mutableStateOf("") }
+    val originalFacebook = remember { mutableStateOf("") }
+    val originalInstagram = remember { mutableStateOf("") }
+    val originalTwitter = remember { mutableStateOf("") }
+    val originalLinkedin = remember { mutableStateOf("") }
+    val originalMorningStart = remember { mutableStateOf("") }
+    val originalMorningEnd = remember { mutableStateOf("") }
+    val originalAfternoonStart = remember { mutableStateOf("") }
+    val originalAfternoonEnd = remember { mutableStateOf("") }
+
+    // Load profile data on screen initialization
+    LaunchedEffect(Unit) {
+        try {
+            val profile = authViewModel.getProfile()
+            profileData = profile
+
+            when (profile) {
+                is PatientProfile -> {
+                    isPatient = true
+                    firstName.value = profile.first_name
+                    lastName.value = profile.last_name
+                    address.value = profile.address.toString()
+                    phone.value = profile.phone ?: ""
+                }
+                is DoctorProfile -> {
+                    isPatient = false
+                    firstName.value = profile.first_name
+                    lastName.value = profile.last_name
+                    address.value = profile.address
+                    phone.value = profile.phone ?: ""
+                    contactEmail.value = profile.contact_email ?: ""
+                    contactPhone.value = profile.contact_phone ?: ""
+
+                    // Set social links
+                    facebook.value = profile.social_links.facebook ?: ""
+                    instagram.value = profile.social_links.instagram ?: ""
+                    twitter.value = profile.social_links.twitter ?: ""
+                    linkedin.value = profile.social_links.linkedin ?: ""
+
+                    // Set working hours from the WorkingHours object
+                    morningStart.value = profile.working_hours.morning.start
+                    morningEnd.value = profile.working_hours.morning.end
+                    afternoonStart.value = profile.working_hours.evening.start
+                    afternoonEnd.value = profile.working_hours.evening.end
+                }
+            }
+
+            // Store original values
+            originalFirstName.value = firstName.value
+            originalLastName.value = lastName.value
+            originalAddress.value = address.value
+            originalPhone.value = phone.value
+            originalContactEmail.value = contactEmail.value
+            originalContactPhone.value = contactPhone.value
+            originalFacebook.value = facebook.value
+            originalInstagram.value = instagram.value
+            originalTwitter.value = twitter.value
+            originalLinkedin.value = linkedin.value
+            originalMorningStart.value = morningStart.value
+            originalMorningEnd.value = morningEnd.value
+            originalAfternoonStart.value = afternoonStart.value
+            originalAfternoonEnd.value = afternoonEnd.value
+
+        } catch (e: Exception) {
+            Log.e("ProfileScreen", "Error loading profile data", e)
+        } finally {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFF0B8FAC))
+        }
+        return
+    }
 
     Column(
         modifier = Modifier
@@ -260,7 +362,7 @@ fun ProfileScreen(
                     )
                 }
                 IconButton(
-                    onClick = { /* TODO: Logout */ }
+                    onClick = {  onLogout() }
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -360,15 +462,11 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        val morningStart = remember { mutableStateOf(workingHours.value.morningStart) }
-                        val morningEnd = remember { mutableStateOf(workingHours.value.morningEnd) }
-
                         TimeSelectionField(
                             label = "Matin - Début",
                             time = morningStart.value,
                             onTimeChange = { newTime ->
                                 morningStart.value = newTime
-                                workingHours.value = workingHours.value.copy(morningStart = newTime)
                             },
                             isEditing = isEditing
                         )
@@ -378,22 +476,17 @@ fun ProfileScreen(
                             time = morningEnd.value,
                             onTimeChange = { newTime ->
                                 morningEnd.value = newTime
-                                workingHours.value = workingHours.value.copy(morningEnd = newTime)
                             },
                             isEditing = isEditing
                         )
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        val afternoonStart = remember { mutableStateOf(workingHours.value.afternoonStart) }
-                        val afternoonEnd = remember { mutableStateOf(workingHours.value.afternoonEnd) }
-
                         TimeSelectionField(
                             label = "Après-midi - Début",
                             time = afternoonStart.value,
                             onTimeChange = { newTime ->
                                 afternoonStart.value = newTime
-                                workingHours.value = workingHours.value.copy(afternoonStart = newTime)
                             },
                             isEditing = isEditing
                         )
@@ -403,7 +496,6 @@ fun ProfileScreen(
                             time = afternoonEnd.value,
                             onTimeChange = { newTime ->
                                 afternoonEnd.value = newTime
-                                workingHours.value = workingHours.value.copy(afternoonEnd = newTime)
                             },
                             isEditing = isEditing
                         )
@@ -462,7 +554,10 @@ fun ProfileScreen(
                                 instagram.value = originalInstagram.value
                                 twitter.value = originalTwitter.value
                                 linkedin.value = originalLinkedin.value
-                                workingHours.value = originalWorkingHours.value
+                                morningStart.value = originalMorningStart.value
+                                morningEnd.value = originalMorningEnd.value
+                                afternoonStart.value = originalAfternoonStart.value
+                                afternoonEnd.value = originalAfternoonEnd.value
                             }
 
                             isEditing = false
@@ -498,31 +593,96 @@ fun ProfileScreen(
                     // Save Button
                     Button(
                         onClick = {
-                            // Save changes
-                            if (!isPatient) {
-                                // Update working hours from individual fields
-                                workingHours.value = WorkingHours(
-                                    morningStart = workingHours.value.morningStart,
-                                    morningEnd = workingHours.value.morningEnd,
-                                    afternoonStart = workingHours.value.afternoonStart,
-                                    afternoonEnd = workingHours.value.afternoonEnd
-                                )
+                            if (!isSaving) {
+                                isSaving = true
 
-                                // Create SocialLinks object
-                                val socialLinks = SocialLinks(
-                                    facebook = facebook.value.ifBlank { null },
-                                    instagram = instagram.value.ifBlank { null },
-                                    twitter = twitter.value.ifBlank { null },
-                                    linkedin = linkedin.value.ifBlank { null }
-                                )
+                                // Get first and last name from the editable fields
+                                val firstNameValue = firstName.value.trim()
+                                val lastNameValue = lastName.value.trim()
 
-                                // TODO: Save doctor profile with all fields including workingHours and socialLinks
-                            } else {
-                                // TODO: Save patient profile
+                                if (!isPatient) {
+                                    // Create working hours data structure for API
+                                    val workingHoursData = listOf(
+                                        mapOf(
+                                            "start_time" to "${morningStart.value}:00",
+                                            "end_time" to "${morningEnd.value}:00",
+                                            "period" to false // morning shift
+                                        ),
+                                        mapOf(
+                                            "start_time" to "${afternoonStart.value}:00",
+                                            "end_time" to "${afternoonEnd.value}:00",
+                                            "period" to true // afternoon shift
+                                        )
+                                    )
+
+                                    // Create social links data structure for API
+                                    val socialLinksData = mapOf(
+                                        "facebook" to if (facebook.value.isNotBlank()) facebook.value else null,
+                                        "linkedin" to if (linkedin.value.isNotBlank()) linkedin.value else null,
+                                        "twitter" to if (twitter.value.isNotBlank()) twitter.value else null,
+                                        "instagram" to if (instagram.value.isNotBlank()) instagram.value else null
+                                    ).filterValues { it != null }
+
+                                    // Save doctor profile
+                                    authViewModel.updateDoctorProfile(
+                                        firstNameValue,
+                                        lastNameValue,
+                                        address.value,
+                                        phone.value.takeIf { it.isNotBlank() },
+                                        contactEmail.value.takeIf { it.isNotBlank() },
+                                        contactPhone.value.takeIf { it.isNotBlank() },
+                                        socialLinksData,
+                                        workingHoursData
+                                    ) { success ->
+                                        isSaving = false
+                                        if (success) {
+                                            // Update full name and original values
+                                            originalFirstName.value = firstName.value
+                                            originalAddress.value = address.value
+                                            originalPhone.value = phone.value
+                                            originalContactEmail.value = contactEmail.value
+                                            originalContactPhone.value = contactPhone.value
+                                            originalFacebook.value = facebook.value
+                                            originalInstagram.value = instagram.value
+                                            originalTwitter.value = twitter.value
+                                            originalLinkedin.value = linkedin.value
+                                            originalMorningStart.value = morningStart.value
+                                            originalMorningEnd.value = morningEnd.value
+                                            originalAfternoonStart.value = afternoonStart.value
+                                            originalAfternoonEnd.value = afternoonEnd.value
+
+                                            isEditing = false
+                                            Log.d("ProfileUpdate", "Doctor profile updated successfully")
+                                        } else {
+                                            Log.e("ProfileUpdate", "Failed to update doctor profile")
+                                        }
+                                    }
+                                } else {
+                                    // Save patient profile
+                                    authViewModel.updatePatientProfile(
+                                        firstNameValue,
+                                        lastNameValue,
+                                        address.value,
+                                        phone.value.takeIf { it.isNotBlank() }
+                                    ) { success ->
+                                        isSaving = false
+                                        if (success) {
+                                            // Update full name and original values
+                                            originalFirstName.value = firstName.value
+                                            originalLastName.value = lastName.value
+                                            originalAddress.value = address.value
+                                            originalPhone.value = phone.value
+
+                                            isEditing = false
+                                            Log.d("ProfileUpdate", "Patient profile updated successfully")
+                                        } else {
+                                            Log.e("ProfileUpdate", "Failed to update patient profile")
+                                        }
+                                    }
+                                }
                             }
-
-                            isEditing = false
                         },
+
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B8FAC)),
                         modifier = Modifier
                             .weight(1f)
@@ -551,27 +711,9 @@ fun ProfileScreen(
                     }
                 }
             } else {
-                // Edit Button when not editing
+                // Edit button when not editing
                 Button(
-                    onClick = {
-                        // Enter edit mode → backup current values
-                        originalFirstName.value = firstName.value
-                        originalLastName.value = lastName.value
-                        originalAddress.value = address.value
-                        originalPhone.value = phone.value
-
-                        if (!isPatient) {
-                            originalContactEmail.value = contactEmail.value
-                            originalContactPhone.value = contactPhone.value
-                            originalFacebook.value = facebook.value
-                            originalInstagram.value = instagram.value
-                            originalTwitter.value = twitter.value
-                            originalLinkedin.value = linkedin.value
-                            originalWorkingHours.value = workingHours.value
-                        }
-
-                        isEditing = true
-                    },
+                    onClick = { isEditing = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B8FAC)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -600,7 +742,5 @@ fun ProfileScreen(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }

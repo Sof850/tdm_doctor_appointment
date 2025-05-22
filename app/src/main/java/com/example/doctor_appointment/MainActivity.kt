@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import androidx.navigation.compose.composable
@@ -27,14 +29,15 @@ import com.google.android.gms.common.api.ApiException
 
 class MainActivity : ComponentActivity() {
 
-    lateinit var googleSignInClient: GoogleSignInClient
-    lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
-    lateinit var authRepository : AuthRepository
-    lateinit var authViewModel: AuthViewModel
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
+    private lateinit var authRepository: AuthRepository
+    private lateinit var authViewModel: AuthViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Initialize repository and view model
         authRepository = AuthRepository(this@MainActivity)
         authViewModel = AuthViewModel(authRepository)
 
@@ -47,29 +50,68 @@ class MainActivity : ComponentActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         // Launcher for Google Sign-In intent result
-        val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
                 val idToken = account.idToken
                 if (idToken != null) {
+                    Log.d("GoogleSignIn", "ID Token received: $idToken")
                     authViewModel.signInWithGoogle(idToken)
-                    Log.d("GoogleSignInTest", "ID Token: $idToken")
+                } else {
+                    Log.e("GoogleSignIn", "ID Token is null")
                 }
             } catch (e: ApiException) {
-                Log.e("GoogleSignInTest", "Sign-in failed", e)
+                Log.e("GoogleSignIn", "Sign-in failed with code: ${e.statusCode}", e)
             }
         }
 
         setContent {
             Surface(color = MaterialTheme.colorScheme.background) {
-                AppNavigation(viewModel = authViewModel, onGoogleSignInClicked = {
-                        launcher.launch(googleSignInClient.signInIntent)
+                AppNavigation(
+                    viewModel = authViewModel,
+                    onGoogleSignInClicked = {
+                        Log.d("GoogleSignIn", "Google Sign-In button clicked")
+                        startGoogleSignIn()
+                    },
+                    onLogout = {
+                        handleLogout()
                     }
                 )
             }
         }
     }
+
+    private fun startGoogleSignIn() {
+        try {
+            // Sign out first to ensure account selection
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                googleSignInLauncher.launch(signInIntent)
+            }
+        } catch (e: Exception) {
+            Log.e("GoogleSignIn", "Error starting Google Sign-In", e)
+        }
+    }
+
+    private fun handleLogout() {
+        // Sign out from Google
+        googleSignInClient.signOut().addOnCompleteListener {
+            Log.d("Logout", "Google sign out completed")
+        }
+
+        // Clear Google Sign-In cache
+        googleSignInClient.revokeAccess().addOnCompleteListener {
+            Log.d("Logout", "Google access revoked")
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Check if user is already signed in with Google
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+        if (account != null && authViewModel.isLoggedIn.value) {
+            Log.d("GoogleSignIn", "User already signed in: ${account.email}")
+        }
+    }
 }
-
-

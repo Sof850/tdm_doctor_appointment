@@ -302,7 +302,6 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel, isPatie
                             if (currentStep < maxSteps) {
                                 currentStep++
                             } else {
-                                // Final submission
                                 handleSignUp(
                                     viewModel = viewModel,
                                     isPatient = isPatient,

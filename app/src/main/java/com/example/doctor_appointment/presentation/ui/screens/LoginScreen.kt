@@ -256,17 +256,17 @@ fun LoginScreen(
                             if (success) {
                                 Log.d("Login", "Success! Token = $token, Role = $role")
                                 // Navigate based on boolean role: true = patient, false = doctor
-                                /*when (role) {
-                                    true -> navController.navigate("patient_dashboard") {
+                                when (role) {
+                                    true -> navController.navigate("profile") {
                                         popUpTo("login") { inclusive = true }
                                     }
-                                    false -> navController.navigate("doctor_dashboard") {
+                                    false -> navController.navigate("profile") {
                                         popUpTo("login") { inclusive = true }
                                     }
                                     null -> navController.navigate("dashboard") {
                                         popUpTo("login") { inclusive = true }
                                     }
-                                }*/
+                                }
                             } else {
                                 showError = true
                                 errorMessage = "Email ou mot de passe incorrect"

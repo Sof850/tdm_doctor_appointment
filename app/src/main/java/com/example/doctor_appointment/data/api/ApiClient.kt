@@ -6,6 +6,9 @@ import com.example.doctor_appointment.data.model.ProfileResponse
 import com.example.doctor_appointment.data.model.SignUpRequestDoctor
 import com.example.doctor_appointment.data.model.SignUpRequestPatient
 import com.example.doctor_appointment.data.model.TokenResponse
+import com.example.doctor_appointment.data.model.UpdateDoctorRequest
+import com.example.doctor_appointment.data.model.UpdatePatientRequest
+import com.google.gson.JsonObject
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
@@ -63,7 +66,42 @@ object ApiClient {
         return apiService.doctor_signup(request)
     }
 
-    suspend fun getProfile(token : String) : Response<ProfileResponse> {
+    suspend fun updatePatientProfile(
+        token: String,
+        firstName: String,
+        lastName: String,
+        address: String,
+        phone: String?
+    ): Response<JsonObject> {
+        val request = UpdatePatientRequest(firstName, lastName, address, phone)
+        return apiService.updatePatientProfile(token, request)
+    }
+
+    suspend fun updateDoctorProfile(
+        token: String,
+        firstName: String,
+        lastName: String,
+        address: String,
+        phone: String?,
+        contactEmail: String?,
+        contactPhone: String?,
+        socialLinks: Map<String, String?>,
+        workingHours: List<Map<String, Any>>
+    ): Response<JsonObject> {
+        val request = UpdateDoctorRequest(
+            firstName,
+            lastName,
+            address,
+            phone,
+            contactEmail,
+            contactPhone,
+            socialLinks,
+            workingHours
+        )
+        return apiService.updateDoctorProfile(token, request)
+    }
+
+    suspend fun getProfile(token : String) : Response<JsonObject> {
         return apiService.getUserProfile(token)
     }
 
