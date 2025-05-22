@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -43,10 +44,11 @@ fun CustomTextFieldWithTitle(
         // Title
         Text(
             text = title,
-            fontSize = 20.sp,
+            fontSize = 16.sp,
             color = Color.Black,
             fontWeight = FontWeight.SemiBold,
             fontFamily = Poppins,
+            modifier = Modifier.align(Alignment.Start)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -55,7 +57,7 @@ fun CustomTextFieldWithTitle(
         TextField(
             value = value,
             onValueChange = onValueChange,
-            textStyle = LocalTextStyle.current.copy(  // 👈 this sets the font
+            textStyle = LocalTextStyle.current.copy(
                 fontFamily = Poppins,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
@@ -66,28 +68,33 @@ fun CustomTextFieldWithTitle(
                     text = placeholderText,
                     fontSize = 16.sp,
                     color = Color(0xFF858585),
-                    fontWeight = FontWeight.Normal,
                     fontFamily = Poppins
                 )
             },
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFF5F5F5),
+                unfocusedContainerColor = Color(0xFFF5F5F5),
+                cursorColor = Color(0xFF0B8FAC),
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
+            ),
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             trailingIcon = {
                 if (isPassword) {
                     val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password", tint = Color(0xFF0B8FAC))
+                        Icon(
+                            imageVector = image,
+                            contentDescription = if (passwordVisible) "Masquer le mot de passe" else "Afficher le mot de passe",
+                            tint = Color(0xFF0B8FAC)
+                        )
                     }
                 }
             },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFD9D9D9),
-                unfocusedContainerColor = Color(0xFFD9D9D9),
-                cursorColor = Color(0xFF0B8FAC),
-                focusedIndicatorColor = Color(0xFFE6E6E6),
-                unfocusedIndicatorColor = Color(0xFFE6E6E6)
-            ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
     }
 }

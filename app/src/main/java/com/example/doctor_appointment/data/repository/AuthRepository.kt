@@ -33,8 +33,20 @@ class AuthRepository(context: Context) {
         return response
     }
 
-    suspend fun patientSignUp(firstName: String, lastName: String, email: String, password: String): Boolean {
-        return ApiClient.patientSignup(firstName, lastName, email, password).isSuccessful
+    suspend fun doctorLogin(email: String, password: String): Response<TokenResponse> {
+        val response = ApiClient.doctorLogin(email, password)
+        if (response.isSuccessful) {
+            response.body()?.let { saveToken(it.access_token, it.isPatient) }
+        }
+        return response
+    }
+
+    suspend fun patientSignUp(firstName: String, lastName: String, email: String, password: String, address: String?, phone: String?): Boolean {
+        return ApiClient.patientSignup(firstName, lastName, email, password, address, phone).isSuccessful
+    }
+
+    suspend fun doctorSignup(firstName: String, lastName: String, email: String, password: String, address: String, specialty: Int, phone: String?, contact_email: String?, contact_phone: String?): Boolean {
+        return ApiClient.doctorSignup(firstName, lastName, email, password, address, specialty, phone, contact_email, contact_phone).isSuccessful
     }
 
     fun logout() {

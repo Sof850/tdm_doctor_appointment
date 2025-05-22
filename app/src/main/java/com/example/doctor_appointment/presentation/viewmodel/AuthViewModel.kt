@@ -43,16 +43,47 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
         _isPatient.value = authRepository.getRole()
     }
 
-    fun signup(
+    fun signupPatient(
         firstName: String,
         lastName: String,
         email: String,
         password: String,
+        address: String?,
+        phone: String?,
         onResult: (Boolean) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                if (authRepository.patientSignUp(firstName, lastName, email, password)) {
+                if (authRepository.patientSignUp(firstName, lastName, email, password, address, phone)) {
+                    Log.d("Signup", "Successful")
+                    onResult(true)
+                } else {
+                    Log.e("Signup", "Failed")
+                    onResult(false)
+                }
+            } catch (e: Exception) {
+                Log.e("Signup", "Exception: ${e.message}", e)
+                onResult(false)
+            }
+        }
+    }
+
+    fun signupDoctor(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        address: String,
+        specialty: Int,
+        phone: String?,
+        contact_email: String?,
+        contact_phone: String?,
+        onResult: (Boolean) -> Unit,
+
+    ) {
+        viewModelScope.launch {
+            try {
+                if (authRepository.doctorSignup(firstName, lastName, email, password, address, specialty, phone, contact_email, contact_phone)) {
                     Log.d("Signup", "Successful")
                     onResult(true)
                 } else {
@@ -73,17 +104,29 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val response = password?.let { authRepository.patientLogin(email, it) }
+                var success = false
+                var response = password?.let { authRepository.patientLogin(email, it) }
                 if (response != null) {
                     if (response.isSuccessful) {
-                        val token = response.body()?.access_token
-                        val isPatient = response.body()?.isPatient
-                        Log.d("Login", "Success! Token = $token, \nyour role is $isPatient")
-                        onResult(true, token, isPatient)
+                        success = true
                     } else {
-                        Log.e("Login", "Failed: ${response.code()} - ${response.errorBody()?.string()}")
+                        response = password?.let { authRepository.doctorLogin(email, it) }
+                        if (response != null) {
+                            if (response.isSuccessful) {
+                                success = true
+                            }
+                        }
+                    }
+                    if (!success) {
+                        if (response != null) {
+                            Log.e("Login", "Failed: ${response.code()} - ${response.errorBody()?.string()}")
+                        }
                         onResult(false, null, true)
                     }
+                    val token = response?.body()?.access_token
+                    val isPatient = response?.body()?.isPatient
+                    Log.d("Login", "Success! Token = $token, \nyour role is $isPatient")
+                    onResult(true, token, isPatient)
                 }
             } catch (e: Exception) {
                 Log.e("Login", "Exception during login: ${e.message}", e)
