@@ -2,10 +2,10 @@ package com.example.doctor_appointment.data.api
 
 
 import com.example.doctor_appointment.data.model.LoginRequest
+import com.example.doctor_appointment.data.model.ProfileResponse
 import com.example.doctor_appointment.data.model.SignUpRequestDoctor
 import com.example.doctor_appointment.data.model.SignUpRequestPatient
 import com.example.doctor_appointment.data.model.TokenResponse
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
@@ -13,19 +13,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
-
-    private var authInterceptor : Interceptor? = null
-
-    fun buildAuth(token : String) {
-        authInterceptor = Interceptor { chain ->
-            val requestBuilder = chain.request().newBuilder()
-            token.let {
-                requestBuilder.addHeader("Authorization", "Bearer $it")
-            }
-
-            chain.proceed(requestBuilder.build())
-        }
-    }
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -74,6 +61,10 @@ object ApiClient {
             contact_phone
         )
         return apiService.doctor_signup(request)
+    }
+
+    suspend fun getProfile(token : String) : Response<ProfileResponse> {
+        return apiService.getUserProfile(token)
     }
 
 

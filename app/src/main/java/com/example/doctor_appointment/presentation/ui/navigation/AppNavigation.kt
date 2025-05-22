@@ -15,7 +15,7 @@ import com.example.doctor_appointment.presentation.viewmodel.AuthViewModel
 @Composable
 fun AppNavigation(viewModel: AuthViewModel, onGoogleSignInClicked: () -> Unit) {
     val navController = rememberNavController()
-    NavHost(navController, startDestination = "login") {
+    NavHost(navController, startDestination = "profile") {
         composable("login") { LoginScreen(navController, viewModel, onGoogleSignInClicked) }
         composable(
             route = "signup/{isPatient}",

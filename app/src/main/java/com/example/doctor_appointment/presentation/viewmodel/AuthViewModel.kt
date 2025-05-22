@@ -4,9 +4,12 @@ package com.example.doctor_appointment.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.doctor_appointment.data.model.DoctorProfile
+import com.example.doctor_appointment.data.model.PatientProfile
 import com.example.doctor_appointment.data.repository.AuthRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -54,7 +57,15 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                if (authRepository.patientSignUp(firstName, lastName, email, password, address, phone)) {
+                if (authRepository.patientSignUp(
+                        firstName,
+                        lastName,
+                        email,
+                        password,
+                        address,
+                        phone
+                    )
+                ) {
                     Log.d("Signup", "Successful")
                     onResult(true)
                 } else {
@@ -80,10 +91,21 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
         contact_phone: String?,
         onResult: (Boolean) -> Unit,
 
-    ) {
+        ) {
         viewModelScope.launch {
             try {
-                if (authRepository.doctorSignup(firstName, lastName, email, password, address, specialty, phone, contact_email, contact_phone)) {
+                if (authRepository.doctorSignup(
+                        firstName,
+                        lastName,
+                        email,
+                        password,
+                        address,
+                        specialty,
+                        phone,
+                        contact_email,
+                        contact_phone
+                    )
+                ) {
                     Log.d("Signup", "Successful")
                     onResult(true)
                 } else {
@@ -119,7 +141,10 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
                     }
                     if (!success) {
                         if (response != null) {
-                            Log.e("Login", "Failed: ${response.code()} - ${response.errorBody()?.string()}")
+                            Log.e(
+                                "Login",
+                                "Failed: ${response.code()} - ${response.errorBody()?.string()}"
+                            )
                         }
                         onResult(false, null, true)
                     }
@@ -152,8 +177,7 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
                                 }
                             }
                         }
-                    }
-                    catch (e: Exception) {
+                    } catch (e: Exception) {
                         Log.e("GoogleAuth", "Exception during login: ${e.message}", e)
                     }
 
@@ -170,5 +194,43 @@ class AuthViewModel(private val authRepository : AuthRepository) : ViewModel() {
         _isGoogleSignedIn.value = false
     }
 
+    suspend fun getId(): Int? {
+        val response = authRepository.getProfile()
+        if (response != null) {
+            if (response.isSuccessful) {
+                val isPatient = response.body()?.isPatient
+                val profile = response.body()?.profile
+                if (profile != null) {
+                    return profile.get("id").asInt
+                }
+            }
+        }
+        return null
+    }
+
+    suspend fun getProfile(): Any? {
+        val response = authRepository.getProfile()
+        if (response?.isSuccessful == true) {
+            val body = response.body()
+            val profile = body?.profile
+            val isPatient = body?.isPatient
+
+            if (profile == null) return null
+
+            val gson = Gson()
+
+            return if (isPatient == true) {
+                val patientProfile = gson.fromJson(profile, PatientProfile::class.java)
+                patientProfile
+            } else {
+                val doctorProfile = gson.fromJson(profile, DoctorProfile::class.java)
+                doctorProfile
+            }
+        }
+        return null
+    }
+
 }
+
+
 

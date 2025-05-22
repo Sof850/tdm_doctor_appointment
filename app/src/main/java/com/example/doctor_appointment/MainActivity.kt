@@ -38,7 +38,6 @@ class MainActivity : ComponentActivity() {
         authRepository = AuthRepository(this@MainActivity)
         authViewModel = AuthViewModel(authRepository)
 
-
         // Setup Google Sign-In options (use your Web client ID)
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))

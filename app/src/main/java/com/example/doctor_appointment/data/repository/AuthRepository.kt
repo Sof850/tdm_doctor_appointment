@@ -3,6 +3,7 @@ package com.example.doctor_appointment.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.doctor_appointment.data.api.ApiClient
+import com.example.doctor_appointment.data.model.ProfileResponse
 import com.example.doctor_appointment.data.model.TokenResponse
 import retrofit2.Response
 
@@ -54,4 +55,8 @@ class AuthRepository(context: Context) {
     }
 
     fun getRole(): Boolean = prefs.getBoolean(PATIENT_KEY, true)
+
+    suspend fun getProfile() : Response<ProfileResponse>? {
+        return getToken()?.let { ApiClient.getProfile(it) }
+    }
 }
